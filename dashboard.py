@@ -1,49 +1,67 @@
-# dashboard.py
-
 from PyQt5 import QtWidgets, QtCore, QtGui
-import sys
+import pyqtgraph as pg
+import sqlite3
 from datetime import datetime
 from sales import SalesWindow
 from purchases import PurchasesWindow
 from customers import CustomersWindow
 from suppliers import SuppliersWindow
-from stock_manager import get_low_stock_alerts
 from reports import ReportsWindow
+from stock_manager import get_low_stock_alerts, get_current_stock_levels
+from themes1 import apply_gradient_theme
+
+DB_PATH = "magen.db"  # Ensure you point to your main database
 
 class DashboardWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Magen Business Enterprise - Dashboard")
-        self.setGeometry(100, 100, 1000, 600)
+        self.setGeometry(100, 100, 1100, 650)
+        apply_gradient_theme(self, theme="dark")
         self.init_ui()
 
     def init_ui(self):
-        # Main container
+        # Main container and layouts
         self.container = QtWidgets.QWidget()
         self.setCentralWidget(self.container)
 
-        # Layouts
-        self.main_layout = QtWidgets.QHBoxLayout(self.container)
-        self.sidebar_layout = QtWidgets.QVBoxLayout()
-        self.content_layout = QtWidgets.QVBoxLayout()
+        self.main_layout = QtWidgets.QVBoxLayout(self.container)  # Main vertical layout
+        self.body_layout = QtWidgets.QHBoxLayout()  # For sidebar and content
 
-        # Sidebar
+        # === Header ===
+        header = QtWidgets.QLabel("Magen Business Enterprise - Dashboard")
+        header.setFont(QtGui.QFont("Segoe UI", 16, QtGui.QFont.Bold))
+        header.setAlignment(QtCore.Qt.AlignCenter)
+        header.setStyleSheet("background-color: #0A2647; color: white; padding: 12px;")
+        self.main_layout.addWidget(header)
+
+        # === Sidebar ===
         self.sidebar = QtWidgets.QFrame()
         self.sidebar.setFixedWidth(200)
         self.sidebar.setStyleSheet("background-color: #0A2647; color: white;")
+        self.sidebar_layout = QtWidgets.QVBoxLayout(self.sidebar)
 
-        # Date/time label
-        self.datetime_label = QtWidgets.QLabel()
-        self.datetime_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.datetime_label.setFont(QtGui.QFont("Segoe UI", 10, QtGui.QFont.Bold))
+        # Marquee
+        self.marquee_label = QtWidgets.QLabel()
+        self.marquee_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.marquee_label.setFont(QtGui.QFont("Segoe UI", 10, QtGui.QFont.Bold))
+        self.marquee_label.setStyleSheet("color: yellow; background-color: #0A2647;")
+        self.sidebar_layout.addWidget(self.marquee_label)
 
-        self.update_datetime()
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.update_datetime)
-        self.timer.start(1000)
+        self.marquee_text = ""
+        self.marquee_index = 0
+        self.update_marquee_text()
 
-        # Sidebar buttons
-        buttons = ["Dashboard", "Sales", "Purchases", "Customers", "Suppliers", "Reports", "Logout"]
+        self.marquee_timer = QtCore.QTimer()
+        self.marquee_timer.timeout.connect(self.scroll_marquee)
+        self.marquee_timer.start(150)
+
+        self.alert_refresh_timer = QtCore.QTimer()
+        self.alert_refresh_timer.timeout.connect(self.update_marquee_text)
+        self.alert_refresh_timer.start(10000)
+
+        # Navigation buttons
+        buttons = ["Dashboard", "Sales", "Purchases", "Customers", "Suppliers", "Reports", "Toggle Theme", "Logout"]
         for btn_text in buttons:
             btn = QtWidgets.QPushButton(btn_text)
             btn.setStyleSheet("""
@@ -63,78 +81,151 @@ class DashboardWindow(QtWidgets.QMainWindow):
             self.sidebar_layout.addWidget(btn)
 
         self.sidebar_layout.addStretch()
-        self.sidebar_layout.addWidget(self.datetime_label)
-        self.sidebar.setLayout(self.sidebar_layout)
 
-        # Content area
+        # Clock pinned at the bottom
+        self.datetime_label = QtWidgets.QLabel()
+        self.datetime_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.datetime_label.setFont(QtGui.QFont("Segoe UI", 10, QtGui.QFont.Bold))
+        self.datetime_label.setStyleSheet("color: white; background-color: #0A2647; padding: 5px;")
+        self.sidebar_layout.addWidget(self.datetime_label)
+
+        self.update_datetime()
+        self.clock_timer = QtCore.QTimer()
+        self.clock_timer.timeout.connect(self.update_datetime)
+        self.clock_timer.start(1000)
+
+        # === Content ===
         self.content = QtWidgets.QFrame()
         self.content.setStyleSheet("background-color: #f1f1f1;")
-        self.content_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.content_layout = QtWidgets.QVBoxLayout(self.content)
 
-        self.header = QtWidgets.QLabel("Welcome to Magen Business Enterprise")
-        self.header.setFont(QtGui.QFont("Segoe UI", 16, QtGui.QFont.Bold))
-        self.header.setAlignment(QtCore.Qt.AlignCenter)
-        self.content_layout.addWidget(self.header)
+        # Summary Cards in a single horizontal row
+        summary_layout = QtWidgets.QHBoxLayout()
+        summary_layout.setSpacing(20)
 
-        self.info_label = QtWidgets.QLabel("Dashboard Content Area")
-        self.info_label.setFont(QtGui.QFont("Segoe UI", 12))
-        self.info_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.content_layout.addWidget(self.info_label)
+        sales_total, purchases_total = self.get_summary_totals()
+        stock_levels = get_current_stock_levels()
+        total_stock_items = sum(stock_levels.values())
 
-        self.content.setLayout(self.content_layout)
+        self.sales_card, self.sales_value_label = self.create_summary_card("Total Sales", f"Ksh {sales_total:,.2f}", "#0A2647")
+        self.purchases_card, self.purchases_value_label = self.create_summary_card("Total Purchases", f"Ksh {purchases_total:,.2f}", "#144272")
+        self.stock_card, self.stock_value_label = self.create_summary_card("Current Stock Units", f"{total_stock_items} Lts", "#205295")
 
-        # Add to main layout
-        self.main_layout.addWidget(self.sidebar)
-        self.main_layout.addWidget(self.content)
+        summary_layout.addWidget(self.sales_card)
+        summary_layout.addWidget(self.purchases_card)
+        summary_layout.addWidget(self.stock_card)
+
+        self.content_layout.addLayout(summary_layout)
+        self.content_layout.addSpacing(20)
+
+        # Graph below the cards
+        graph_widget = pg.PlotWidget(title="Daily Sales & Purchases")
+        graph_widget.setBackground('w')
+        graph_widget.showGrid(x=True, y=True)
+        graph_widget.addLegend()
+
+        days = list(range(1, 8))
+        sales_data = [150, 200, 180, 250, 300, 280, 320]
+        purchases_data = [100, 150, 130, 200, 180, 170, 210]
+
+        graph_widget.plot(days, sales_data, pen=pg.mkPen(color='b', width=2), name='Sales')
+        graph_widget.plot(days, purchases_data, pen=pg.mkPen(color='g', width=2), name='Purchases')
+        graph_widget.setFixedHeight(350)
+
+        self.content_layout.addWidget(graph_widget)
+
+        # Assemble body layout
+        self.body_layout.addWidget(self.sidebar)
+        self.body_layout.addWidget(self.content)
+
+        # Add body layout to main layout
+        self.main_layout.addLayout(self.body_layout)
 
     def update_datetime(self):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.datetime_label.setText(current_time)
+
+    def create_summary_card(self, title, value, color):
+        card = QtWidgets.QFrame()
+        card.setFixedSize(250, 100)
+        card.setStyleSheet(f"background-color: {color}; color: white; border-radius: 10px;")
+        card_layout = QtWidgets.QVBoxLayout(card)
+
+        title_label = QtWidgets.QLabel(title)
+        title_label.setFont(QtGui.QFont("Segoe UI", 12, QtGui.QFont.Bold))
+        title_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        value_label = QtWidgets.QLabel(value)
+        value_label.setFont(QtGui.QFont("Segoe UI", 20, QtGui.QFont.Bold))
+        value_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        card_layout.addWidget(title_label)
+        card_layout.addWidget(value_label)
+
+        return card, value_label
+
+    def get_summary_totals(self):
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT SUM(total_amount) FROM sales")
+            sales_total = cursor.fetchone()[0] or 0
+
+            cursor.execute("SELECT SUM(total_amount) FROM purchases")
+            purchases_total = cursor.fetchone()[0] or 0
+
+            conn.close()
+            return sales_total, purchases_total
+
+        except Exception as e:
+            print(f"Error fetching summary totals: {e}")
+            return 0, 0
+
+    def update_marquee_text(self):
         alerts = get_low_stock_alerts()
         if alerts:
-            self.datetime_label.setText(f"{current_time} | Low Stock Alerts: {', '.join(alerts)}")
+            self.marquee_text = " | ".join([f"{item} is low" for item in alerts]) + "     "
         else:
-            self.datetime_label.setText(current_time)
+            self.marquee_text = "All stocks are sufficient.     "
+        self.marquee_index = 0
+
+    def scroll_marquee(self):
+        if self.marquee_text:
+            display_text = self.marquee_text[self.marquee_index:] + self.marquee_text[:self.marquee_index]
+            self.marquee_label.setText(display_text)
+            self.marquee_index = (self.marquee_index + 1) % len(self.marquee_text)
 
     def navigate(self, page_name):
         if page_name == "Sales":
-            self.open_sales_window()
+            self.sales_window = SalesWindow()
+            self.sales_window.show()
         elif page_name == "Purchases":
-            self.open_purchases_window()
+            self.purchases_window = PurchasesWindow()
+            self.purchases_window.show()
         elif page_name == "Customers":
-            self.open_customers_window()
+            self.customers_window = CustomersWindow()
+            self.customers_window.show()
         elif page_name == "Suppliers":
-            self.open_suppliers_window()
+            self.suppliers_window = SuppliersWindow()
+            self.suppliers_window.show()
         elif page_name == "Reports":
-            self.open_reports_window()
+            self.reports_window = ReportsWindow()
+            self.reports_window.show()
+        elif page_name == "Toggle Theme":
+            current_theme = getattr(self, 'current_theme', 'dark')
+            new_theme = 'light' if current_theme == 'dark' else 'dark'
+            apply_gradient_theme(self, theme=new_theme)
+            self.current_theme = new_theme
         elif page_name == "Logout":
             self.close()
         else:
-            self.info_label.setText(f"{page_name} Page (Coming Soon...)")
+            QtWidgets.QMessageBox.information(self, "Coming Soon", f"{page_name} Page (Coming Soon...)")
 
-    def open_sales_window(self):
-        self.sales_window = SalesWindow()
-        self.sales_window.show()
-
-    def open_purchases_window(self):
-        self.purchases_window = PurchasesWindow()
-        self.purchases_window.show()
-
-    def open_customers_window(self):
-        self.customers_window = CustomersWindow()
-        self.customers_window.show()
-
-    def open_suppliers_window(self):
-        self.suppliers_window = SuppliersWindow()
-        self.suppliers_window.show()
-
-    def open_reports_window(self):
-        self.reports_window = ReportsWindow()
-        self.reports_window.show()
-
-# For standalone testing
+# Standalone testing
 if __name__ == "__main__":
+    import sys
     app = QtWidgets.QApplication(sys.argv)
-
     from login import LoginWindow
 
     login_window = LoginWindow()
@@ -146,5 +237,4 @@ if __name__ == "__main__":
 
     login_window.login_success.connect(on_login_success)
     login_window.show()
-
     sys.exit(app.exec_())

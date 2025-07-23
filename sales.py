@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QDate
 from stock_manager import update_stock_on_sale, can_sell
+from themes import apply_gradient_theme # Importing the theme function
 
 DB_FILE = 'magen.db'
 
@@ -15,6 +16,7 @@ class SalesWindow(QWidget):
         self.setWindowTitle("Record Sale")
         self.setGeometry(200, 200, 400, 400)
         self.init_ui()
+        apply_gradient_theme(self)  # Apply the gradient theme
 
     def init_ui(self):
         layout = QVBoxLayout()

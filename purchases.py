@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QDate
 import sqlite3
+from themes import apply_gradient_theme
 
 DATABASE_NAME = "magen.db"
 
@@ -16,6 +17,7 @@ class PurchasesWindow(QWidget):
         self.setWindowTitle("Record Purchase")
         self.setGeometry(100, 100, 400, 500)
         self.init_ui()
+        apply_gradient_theme(self)
 
     def init_ui(self):
         layout = QVBoxLayout()

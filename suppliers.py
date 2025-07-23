@@ -6,11 +6,13 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QMessageBox, QHBoxLayout, QFileDialog, QLabel
 )
 from PyQt5.QtCore import Qt
+from themes import apply_gradient_theme
 
 class SuppliersWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Suppliers Management")
+        apply_gradient_theme(self)
         self.setGeometry(200, 200, 750, 500)
         self.init_ui()
 

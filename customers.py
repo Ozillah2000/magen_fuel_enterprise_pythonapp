@@ -6,11 +6,13 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QMessageBox, QHBoxLayout, QFileDialog, QLabel
 )
 from PyQt5.QtCore import Qt
+from themes import apply_gradient_theme
 
 class CustomersWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Customers Management")
+        apply_gradient_theme(self)
         self.setGeometry(150, 150, 700, 500)
         self.init_ui()
 

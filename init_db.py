@@ -2,7 +2,9 @@
 
 import sqlite3
 
-conn = sqlite3.connect('magen.db')
+DATABASE_NAME = "magen.db"
+
+conn = sqlite3.connect(DATABASE_NAME)
 cursor = conn.cursor()
 
 # Create users table
@@ -71,6 +73,7 @@ CREATE TABLE IF NOT EXISTS purchases (
     date TEXT
 )
 """)
+
 # -------------------------------------------
 # Ensure purchases and sales tables have lpo, invoice, receipt, delivery_note columns
 
@@ -79,26 +82,19 @@ def add_column_if_not_exists(table_name, column_name, column_type):
     columns = [info[1] for info in cursor.fetchall()]
     if column_name not in columns:
         cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
-        print(f"Added column '{column_name}' to '{table_name}' table.")
+        print(f"✅ Added column '{column_name}' to '{table_name}' table.")
     else:
-        print(f"Column '{column_name}' already exists in '{table_name}' table.")
+        print(f"ℹ️ Column '{column_name}' already exists in '{table_name}' table.")
 
 # Add missing columns to purchases
-add_column_if_not_exists("purchases", "lpo", "TEXT")
-add_column_if_not_exists("purchases", "invoice", "TEXT")
-add_column_if_not_exists("purchases", "receipt", "TEXT")
-add_column_if_not_exists("purchases", "delivery_note", "TEXT")
+for col in ["lpo", "invoice", "receipt", "delivery_note"]:
+    add_column_if_not_exists("purchases", col, "TEXT")
 
 # Add missing columns to sales
-add_column_if_not_exists("sales", "lpo", "TEXT")
-add_column_if_not_exists("sales", "invoice", "TEXT")
-add_column_if_not_exists("sales", "receipt", "TEXT")
-add_column_if_not_exists("sales", "delivery_note", "TEXT")
+for col in ["lpo", "invoice", "receipt", "delivery_note"]:
+    add_column_if_not_exists("sales", col, "TEXT")
 
-conn.commit()
-conn.close()
-print("✅ Database migration complete.")
-
+# -------------------------------------------
 # Insert admin user if not exists
 cursor.execute("SELECT * FROM users WHERE username = ?", ("admin",))
 if cursor.fetchone() is None:
@@ -122,6 +118,8 @@ if count == 0:
 else:
     print("ℹ️ Stock table already has data.")
 
+# Commit and close cleanly
 conn.commit()
 conn.close()
-print("✅ Database initialized successfully.")
+
+print("✅ Database initialization and migration complete.")
