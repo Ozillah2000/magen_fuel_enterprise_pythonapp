@@ -32,11 +32,9 @@ class CustomersWindow(QWidget):
         form_layout = QFormLayout()
         self.full_name_input = QLineEdit()
         self.phone_input = QLineEdit()
-        self.email_input = QLineEdit()
         self.address_input = QLineEdit()
         form_layout.addRow("Full Name:", self.full_name_input)
         form_layout.addRow("Phone:", self.phone_input)
-        form_layout.addRow("Email:", self.email_input)
         form_layout.addRow("Address:", self.address_input)
         layout.addLayout(form_layout)
 
@@ -65,8 +63,8 @@ class CustomersWindow(QWidget):
 
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["ID", "Full Name", "Phone", "Email", "Address"])
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["ID", "Name", "Phone", "Address"])
         self.table.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(self.table)
 
@@ -98,7 +96,6 @@ class CustomersWindow(QWidget):
     def add_customer(self):
         name = self.full_name_input.text().strip()
         phone = self.phone_input.text().strip()
-        email = self.email_input.text().strip()
         address = self.address_input.text().strip()
 
         if not name or not phone:
@@ -108,9 +105,10 @@ class CustomersWindow(QWidget):
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO customers (full_name, phone, email, address)
-            VALUES (?, ?, ?, ?)
-        """, (name, phone, email, address))
+            INSERT INTO customers (name, address, phone)
+            VALUES (?, ?, ?)
+        """, (name, address, phone))
+
         conn.commit()
         conn.close()
 
@@ -133,12 +131,12 @@ class CustomersWindow(QWidget):
                 self.table.setItem(row_index, col, QTableWidgetItem(str(data)))
 
     def load_selected_customer(self):
-        selected = self.table.selectedItems()
-        if selected:
-            self.full_name_input.setText(selected[1].text())
-            self.phone_input.setText(selected[2].text())
-            self.email_input.setText(selected[3].text())
-            self.address_input.setText(selected[4].text())
+        selected_ranges = self.table.selectedRanges()
+        if selected_ranges:
+            row = selected_ranges[0].topRow()
+            self.full_name_input.setText(self.table.item(row, 1).text())  # name
+            self.phone_input.setText(self.table.item(row, 2).text())      # phone
+            self.address_input.setText(self.table.item(row, 3).text())    # address
 
     def update_customer(self):
         selected = self.table.selectedItems()
@@ -149,7 +147,6 @@ class CustomersWindow(QWidget):
         customer_id = int(selected[0].text())
         name = self.full_name_input.text().strip()
         phone = self.phone_input.text().strip()
-        email = self.email_input.text().strip()
         address = self.address_input.text().strip()
 
         if not name or not phone:
@@ -160,9 +157,9 @@ class CustomersWindow(QWidget):
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE customers
-            SET full_name = ?, phone = ?, email = ?, address = ?
+            SET name = ?, phone = ?, address = ?
             WHERE id = ?
-        """, (name, phone, email, address, customer_id))
+        """, (name, phone, address, customer_id))
         conn.commit()
         conn.close()
 
@@ -198,7 +195,7 @@ class CustomersWindow(QWidget):
         cursor = conn.cursor()
         cursor.execute("""
             SELECT * FROM customers
-            WHERE full_name LIKE ? OR phone LIKE ?
+            WHERE name LIKE ? OR phone LIKE ?
         """, (f"%{keyword}%", f"%{keyword}%"))
         customers = cursor.fetchall()
         conn.close()
@@ -221,7 +218,7 @@ class CustomersWindow(QWidget):
 
             with open(path, "w", newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
-                writer.writerow(["ID", "Full Name", "Phone", "Email", "Address"])
+                writer.writerow(["ID", "Name", "Phone", "Address"])
                 writer.writerows(customers)
 
             QMessageBox.information(self, "Export Complete", f"Customer data exported to {path}")
@@ -229,7 +226,6 @@ class CustomersWindow(QWidget):
     def clear_inputs(self):
         self.full_name_input.clear()
         self.phone_input.clear()
-        self.email_input.clear()
         self.address_input.clear()
         self.table.clearSelection()
 

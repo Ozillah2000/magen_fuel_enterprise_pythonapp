@@ -10,7 +10,7 @@ from reports import ReportsWindow
 from stock_manager import get_low_stock_alerts, get_current_stock_levels
 from themes1 import apply_gradient_theme
 
-DB_PATH = "magen.db"  # Ensure you point to your main database
+DB_PATH = "magen.db"
 
 class DashboardWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -21,12 +21,11 @@ class DashboardWindow(QtWidgets.QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        # Main container and layouts
         self.container = QtWidgets.QWidget()
         self.setCentralWidget(self.container)
 
-        self.main_layout = QtWidgets.QVBoxLayout(self.container)  # Main vertical layout
-        self.body_layout = QtWidgets.QHBoxLayout()  # For sidebar and content
+        self.main_layout = QtWidgets.QVBoxLayout(self.container)
+        self.body_layout = QtWidgets.QHBoxLayout()
 
         # === Header ===
         header = QtWidgets.QLabel("Magen Business Enterprise - Dashboard")
@@ -82,7 +81,7 @@ class DashboardWindow(QtWidgets.QMainWindow):
 
         self.sidebar_layout.addStretch()
 
-        # Clock pinned at the bottom
+        # Clock
         self.datetime_label = QtWidgets.QLabel()
         self.datetime_label.setAlignment(QtCore.Qt.AlignCenter)
         self.datetime_label.setFont(QtGui.QFont("Segoe UI", 10, QtGui.QFont.Bold))
@@ -99,7 +98,7 @@ class DashboardWindow(QtWidgets.QMainWindow):
         self.content.setStyleSheet("background-color: #f1f1f1;")
         self.content_layout = QtWidgets.QVBoxLayout(self.content)
 
-        # Summary Cards in a single horizontal row
+        # Summary Cards
         summary_layout = QtWidgets.QHBoxLayout()
         summary_layout.setSpacing(20)
 
@@ -107,39 +106,65 @@ class DashboardWindow(QtWidgets.QMainWindow):
         stock_levels = get_current_stock_levels()
         total_stock_items = sum(stock_levels.values())
 
-        self.sales_card, self.sales_value_label = self.create_summary_card("Total Sales", f"Ksh {sales_total:,.2f}", "#0A2647")
-        self.purchases_card, self.purchases_value_label = self.create_summary_card("Total Purchases", f"Ksh {purchases_total:,.2f}", "#144272")
-        self.stock_card, self.stock_value_label = self.create_summary_card("Current Stock Units", f"{total_stock_items} Lts", "#205295")
+        self.sales_card, self.sales_value_label = self.create_summary_card(
+            "Total Sales", f"Ksh {sales_total:,.2f}", "#0A2647"
+        )
+        self.purchases_card, self.purchases_value_label = self.create_summary_card(
+            "Total Purchases", f"Ksh {purchases_total:,.2f}", "#144272"
+        )
+        self.stock_card, self.stock_value_label = self.create_summary_card(
+            "Current Stock Units", f"{total_stock_items} Lts", "#205295"
+        )
 
         summary_layout.addWidget(self.sales_card)
         summary_layout.addWidget(self.purchases_card)
         summary_layout.addWidget(self.stock_card)
 
         self.content_layout.addLayout(summary_layout)
-        self.content_layout.addSpacing(20)
+        self.content_layout.addSpacing(10)
 
-        # Graph below the cards
-        graph_widget = pg.PlotWidget(title="Daily Sales & Purchases")
-        graph_widget.setBackground('w')
-        graph_widget.showGrid(x=True, y=True)
-        graph_widget.addLegend()
+        # Refresh Button
+        refresh_btn = QtWidgets.QPushButton("🔄 Refresh")
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #144272;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #205295;
+            }
+        """)
+        refresh_btn.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        refresh_btn.clicked.connect(self.refresh_summary_cards)
+        self.content_layout.addWidget(refresh_btn, alignment=QtCore.Qt.AlignCenter)
 
+        # Graph
+        self.graph_widget = pg.PlotWidget(title="Daily Sales & Purchases")
+        self.graph_widget.setBackground('w')
+        self.graph_widget.showGrid(x=True, y=True)
+        self.graph_widget.addLegend()
+
+        # Placeholder data for now
         days = list(range(1, 8))
         sales_data = [150, 200, 180, 250, 300, 280, 320]
         purchases_data = [100, 150, 130, 200, 180, 170, 210]
 
-        graph_widget.plot(days, sales_data, pen=pg.mkPen(color='b', width=2), name='Sales')
-        graph_widget.plot(days, purchases_data, pen=pg.mkPen(color='g', width=2), name='Purchases')
-        graph_widget.setFixedHeight(350)
+        self.graph_widget.plot(days, sales_data, pen=pg.mkPen(color='b', width=2), name='Sales')
+        self.graph_widget.plot(days, purchases_data, pen=pg.mkPen(color='g', width=2), name='Purchases')
+        self.graph_widget.setFixedHeight(350)
 
-        self.content_layout.addWidget(graph_widget)
+        self.content_layout.addWidget(self.graph_widget)
 
-        # Assemble body layout
         self.body_layout.addWidget(self.sidebar)
         self.body_layout.addWidget(self.content)
-
-        # Add body layout to main layout
         self.main_layout.addLayout(self.body_layout)
+
+        # Auto-refresh every 15 seconds
+        self.summary_refresh_timer = QtCore.QTimer()
+        self.summary_refresh_timer.timeout.connect(self.refresh_summary_cards)
+        self.summary_refresh_timer.start(15000)
 
     def update_datetime(self):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -169,10 +194,10 @@ class DashboardWindow(QtWidgets.QMainWindow):
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
 
-            cursor.execute("SELECT SUM(total_amount) FROM sales")
+            cursor.execute("SELECT SUM(total) FROM sales")
             sales_total = cursor.fetchone()[0] or 0
 
-            cursor.execute("SELECT SUM(total_amount) FROM purchases")
+            cursor.execute("SELECT SUM(total) FROM purchases")
             purchases_total = cursor.fetchone()[0] or 0
 
             conn.close()
@@ -181,6 +206,15 @@ class DashboardWindow(QtWidgets.QMainWindow):
         except Exception as e:
             print(f"Error fetching summary totals: {e}")
             return 0, 0
+
+    def refresh_summary_cards(self):
+        sales_total, purchases_total = self.get_summary_totals()
+        self.sales_value_label.setText(f"Ksh {sales_total:,.2f}")
+        self.purchases_value_label.setText(f"Ksh {purchases_total:,.2f}")
+
+        stock_levels = get_current_stock_levels()
+        total_stock_items = sum(stock_levels.values())
+        self.stock_value_label.setText(f"{total_stock_items} Lts")
 
     def update_marquee_text(self):
         alerts = get_low_stock_alerts()
@@ -219,10 +253,9 @@ class DashboardWindow(QtWidgets.QMainWindow):
             self.current_theme = new_theme
         elif page_name == "Logout":
             self.close()
-        else:
-            QtWidgets.QMessageBox.information(self, "Coming Soon", f"{page_name} Page (Coming Soon...)")
+        #else:
+           # QtWidgets.QMessageBox.information(self, "Coming Soon", f"{page_name} Page (Coming Soon...)")
 
-# Standalone testing
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)

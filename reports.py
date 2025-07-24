@@ -11,6 +11,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
+from themes1 import apply_gradient_theme
 
 def get_connection():
     return sqlite3.connect('magen.db')
@@ -20,6 +21,7 @@ class ReportsWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Reports")
         self.resize(900, 500)
+        apply_gradient_theme(self)
         layout = QVBoxLayout()
 
         self.tabs = QTabWidget()
