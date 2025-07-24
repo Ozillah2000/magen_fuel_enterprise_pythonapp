@@ -1,0 +1,5 @@
+PyQt5>=5.15.10
+reportlab>=4.0.8
+qrcode>=7.4.2
+Pillow>=10.3.0
+pytest>=8.2.1

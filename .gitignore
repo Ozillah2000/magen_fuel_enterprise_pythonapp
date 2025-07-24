@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.venv
+env/
+venv/
+pip-wheel-metadata/
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database
+magen.db
+
+# PDFs
+invoices/
+delivery_notes/
+purchases_lpos/
+
+# Test artifacts
+.coverage
+htmlcov/
+tests/__pycache__/
+tests/*.pdf
+
+# Environment files
+.env
+.env.local
