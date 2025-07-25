@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore, QtGui 
 import pyqtgraph as pg
 import sqlite3
 from datetime import datetime
@@ -9,6 +9,10 @@ from suppliers import SuppliersWindow
 from reports import ReportsWindow
 from stock_manager import get_low_stock_alerts, get_current_stock_levels
 from themes1 import apply_gradient_theme
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QPushButton, QListWidget, QMessageBox
+)
 
 DB_PATH = "magen.db"
 
@@ -140,6 +144,23 @@ class DashboardWindow(QtWidgets.QMainWindow):
         refresh_btn.clicked.connect(self.refresh_summary_cards)
         self.content_layout.addWidget(refresh_btn, alignment=QtCore.Qt.AlignCenter)
 
+        # ✅ Z Report Button (added visibly below refresh button)
+        self.generate_z_report_button = QtWidgets.QPushButton("🧾 Generate Z Report")
+        self.generate_z_report_button.setStyleSheet("""
+            QPushButton {
+                background-color: #144272;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #205295;
+            }
+        """)
+        self.generate_z_report_button.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        self.generate_z_report_button.clicked.connect(self.generate_z_report)
+        self.content_layout.addWidget(self.generate_z_report_button, alignment=QtCore.Qt.AlignCenter)
+
         # Graph
         self.graph_widget = pg.PlotWidget(title="Daily Sales & Purchases")
         self.graph_widget.setBackground('w')
@@ -253,8 +274,11 @@ class DashboardWindow(QtWidgets.QMainWindow):
             self.current_theme = new_theme
         elif page_name == "Logout":
             self.close()
-        #else:
-           # QtWidgets.QMessageBox.information(self, "Coming Soon", f"{page_name} Page (Coming Soon...)")
+
+    def generate_z_report(self):
+        import generate_z_report
+        generate_z_report.generate_z_report()
+        QMessageBox.information(self, "Z Report", "Z Report generated successfully!")
 
 if __name__ == "__main__":
     import sys
