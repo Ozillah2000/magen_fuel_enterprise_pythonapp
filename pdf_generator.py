@@ -40,15 +40,15 @@ def add_company_header(elements, styles, branch_info=None, doc_type="Document", 
         img = Paragraph("", styles['Normal'])
 
     header_right = []
-    header_right.append(Paragraph("<b>Magen Fuel Enterprise</b>", styles['Title']))
+    header_right.append(Paragraph("<b>Magen Business Enterprise</b>", styles['Title']))
 
     if branch_info:
         header_right.append(Paragraph(branch_info["name"], styles['Normal']))
         header_right.append(Paragraph(branch_info["address"], styles['Normal']))
         header_right.append(Paragraph(branch_info["contacts"], styles['Normal']))
     else:
-        header_right.append(Paragraph("P.O Box 12345-00100, Nairobi, Kenya", styles['Normal']))
-        header_right.append(Paragraph("Tel: +254 700 123456 | Email: info@magenfuel.co.ke", styles['Normal']))
+        header_right.append(Paragraph("P.O Box 3936-40100, Kisumu, Kenya", styles['Normal']))
+        header_right.append(Paragraph("Tel: +254727292536 | Email: info@magenbusiness.co.ke", styles['Normal']))
 
     header_table = Table(
         [[img, header_right]],
@@ -118,7 +118,7 @@ def generate_invoice_pdf_document(invoice_number, sale_data, filename, paid=Fals
 
     footer_style = ParagraphStyle(name="Footer", alignment=1, fontSize=10, textColor=colors.grey)
     elements.append(Paragraph("Thank you for your business.", footer_style))
-    elements.append(Paragraph("Magen Fuel Enterprise | Reliable. Efficient. Affordable.", footer_style))
+    elements.append(Paragraph("Magen Business Enterprise | Reliable. Efficient. Affordable.", footer_style))
 
     if paid:
         doc.build(elements, onFirstPage=add_paid_watermark)
@@ -134,9 +134,9 @@ def generate_invoice_pdf_document(invoice_number, sale_data, filename, paid=Fals
         t_and_c_text = """
         1. Payment is due within 7 days unless otherwise agreed.
         2. Goods once delivered are non-refundable unless defective.
-        3. Magen Fuel Enterprise is not liable for delays caused by circumstances beyond control.
+        3. Magen Business Enterprise is not liable for delays caused by circumstances beyond control.
         4. Disputes should be reported within 48 hours of delivery.
-        5. For support, contact info@magenfuel.co.ke.
+        5. For support, contact info@magenbusiness.co.ke.
         """
         for line in t_and_c_text.strip().split("\n"):
             t_and_c_elements.append(Paragraph(line.strip(), styles['Normal']))
@@ -244,6 +244,6 @@ def generate_lpo_pdf_document(lpo_number, lpo_data, filename, branch_info=None, 
 
     footer_style = ParagraphStyle(name="Footer", alignment=1, fontSize=10, textColor=colors.grey)
     elements.append(Paragraph("Thank you for your business.", footer_style))
-    elements.append(Paragraph("Magen Fuel Enterprise | Reliable. Efficient. Affordable.", footer_style))
+    elements.append(Paragraph("Magen Business Enterprise | Reliable. Efficient. Affordable.", footer_style))
 
     doc.build(elements)
