@@ -4,8 +4,8 @@ Copy
 Edit
 # ⛽️ Magen Fuel Enterprise POS System
 
-user: admin
-password: admin123
+**user: admin**
+**password: admin123**
 
 **A complete, clean Point of Sale, Inventory, and Station Management System** for **fuel stations, LPG, and retail businesses**, designed for **efficiency, reliability, and professional reporting**.
 
