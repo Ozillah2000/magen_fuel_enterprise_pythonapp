@@ -28,7 +28,7 @@ Built using **Python, PyQt5, SQLite, and ReportLab**, with a modular architectur
 
 ## 🖼️ Screenshots
 
-_Add screenshots to `documents/screenshots/` and link here:_
+_ screenshots to `documents/screenshots/` and link here:_
 
 - ![Sales Window](documents/screenshots/sales_window.png)
 - ![Purchase Window](documents/screenshots/purchase_window.png)
